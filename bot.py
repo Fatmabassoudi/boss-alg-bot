@@ -18,7 +18,7 @@ threading.Thread(target=run_dummy_server, daemon=True).start()
 
 # --- إعدادات البوت ---
 TOKEN = '8794281359:AAHqUGfD6k-ZiAiBZYQMIkVr0o-enkdhl8Y'
-VIP_CHANNEL_ID = '@1003844075678' # 👈 ضعي معرف قناتك هنا
+VIP_CHANNEL_ID = -1003844075678 # 👈 ضعي معرف قناتك هنا
 
 ASSETS = [
     "EUR/USD-OTC", "GBP/USD-OTC", "USD/JPY-OTC", "AUD/USD-OTC",
