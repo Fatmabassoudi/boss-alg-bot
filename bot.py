@@ -6,20 +6,20 @@ from threading import Thread
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# --- نظام الحماية والاستقرار (Flask) ---
+# --- نظام الاستقرار ---
 app = Flask('')
 @app.route('/')
-def home(): return "Boss Global Bot is Online"
+def home(): return "Boss Global VIP is Live"
 
 def run(): app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
 def keep_alive(): Thread(target=run).start()
 keep_alive()
 
-# --- إعدادات البوت ---
+# --- الإعدادات ---
 TOKEN = '8794281359:AAHqUGfD6k-ZiAiBZYQMIkVr0o-enkdhl8Y'
 VIP_CHANNEL_ID = -1003844075678
 
-# القائمة الكاملة (41 زوجاً) مرتبة أبجدياً كما طلبتِ
+# القائمة الشاملة مرتبة أبجدياً
 ASSETS = sorted([
     "NZD/CHF (OTC)", "USD/MXN (OTC)", "CHF/JPY (OTC)", "USD/IDR (OTC)", 
     "USD/BRL (OTC)", "USD/ARS (OTC)", "USD/NGN (OTC)", "USD/ZAR (OTC)", 
@@ -40,13 +40,15 @@ async def is_user_vip(user_id, context):
         return member.status in ['member', 'administrator', 'creator']
     except: return False
 
-def build_menu():
+def build_assets_menu():
     keyboard = []
-    # ترتيب الأزرار: كل زوجين في سطر لسهولة القراءة من الهاتف
-    for i in range(0, len(ASSETS), 2):
+    # تنسيق 3 أزواج في كل سطر
+    for i in range(0, len(ASSETS), 3):
         row = [InlineKeyboardButton(ASSETS[i], callback_data=f"asset_{ASSETS[i]}")]
         if i + 1 < len(ASSETS):
             row.append(InlineKeyboardButton(ASSETS[i+1], callback_data=f"asset_{ASSETS[i+1]}"))
+        if i + 2 < len(ASSETS):
+            row.append(InlineKeyboardButton(ASSETS[i+2], callback_data=f"asset_{ASSETS[i+2]}"))
         keyboard.append(row)
     return InlineKeyboardMarkup(keyboard)
 
@@ -54,31 +56,47 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if await is_user_vip(user_id, context):
         await update.message.reply_text(
-            "👑 **مرحباً بكِ في BOSS ALG GLOBAL**\n"
+            "👑 **مرحباً بكِ في BOSS ALG VIP**\n"
             "━━━━━━━━━━━━━━\n"
-            "تم التحقق من العضوية. لديكِ الوصول لـ 41 زوج عملات.\n"
-            "إختار الزوج المطلوب للتحليل:",
-            reply_markup=build_menu(),
+            "إختار زوج العملات للتحليل (مرتب أبجدياً):",
+            reply_markup=build_assets_menu(),
             parse_mode='Markdown'
         )
     else:
-        await update.message.reply_text("⚠️ الوصول مخصص لأعضاء الـ VIP فقط.")
+        await update.message.reply_text("⚠️ الوصول مقتصر على أعضاء VIP فقط.")
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
-    if query.data.startswith("asset_"):
-        asset = query.data.replace("asset_", "")
+    data = query.data
+
+    if data.startswith("asset_"):
+        asset = data.replace("asset_", "")
+        # خيار اختيار الوقت (دقيقة أو 5)
+        keyboard = [[
+            InlineKeyboardButton("1 MIN ⏱️", callback_data=f"time_1_{asset}"),
+            InlineKeyboardButton("5 MIN ⏱️", callback_data=f"time_5_{asset}")
+        ]]
+        await query.edit_message_text(
+            f"📦 الزوج: *{asset}*\nإختار مدة الصفقة:",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode='Markdown'
+        )
+
+    elif data.startswith("time_"):
+        parts = data.split("_")
+        duration, asset = parts[1], parts[2]
+        
         action = random.choice(["CALL 🟢 (صعود)", "PUT 🔴 (هبوط)"])
         entry_time = (datetime.now() + timedelta(minutes=1)).strftime("%H:%M")
         accuracy = random.randint(95, 99)
 
         signal_msg = (
-            f"📊 **إشارة BOSS VIP المضمونة**\n"
+            f"🚀 **إشارة BOSS VIP الحصرية**\n"
             f"━━━━━━━━━━━━━━\n"
             f"🔹 **الـزوج:** `{asset}`\n"
-            f"🔹 **الـوقت:** `{entry_time}`\n"
+            f"🔹 **الـدخول:** `{entry_time}`\n"
+            f"🔹 **الـمدة:** `{duration} MIN`\n"
             f"🔹 **الاتجاه:** **{action}**\n"
             f"🔹 **الـدقة:** `{accuracy}%` 🔥\n"
             f"━━━━━━━━━━━━━━\n"
@@ -88,8 +106,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [[InlineKeyboardButton("قنص إشارة أخرى 🔄", callback_data="back_to_menu")]]
         await query.edit_message_text(text=signal_msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='Markdown')
 
-    elif query.data == "back_to_menu":
-        await query.edit_message_text("اختاري زوج العملات للتحليل:", reply_markup=build_menu())
+    elif data == "back_to_menu":
+        await query.edit_message_text("إختار زوج العملات للتحليل:", reply_markup=build_assets_menu())
 
 if __name__ == '__main__':
     application = Application.builder().token(TOKEN).build()
